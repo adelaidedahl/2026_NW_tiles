@@ -1,0 +1,97 @@
+---
+title: "tile_data"
+output: html_document
+date: "2026-10-20"
+---
+
+# Libraries
+```{r libraries, echo = FALSE, warning = FALSE}
+library(tidyverse)
+library(readxl)
+library(ggpubr)
+library(here)
+library(reshape2)
+library(viridis)
+theme_set(theme_classic(base_size = 15))
+
+```
+
+# functions
+```{r se function}
+#make function for standard error
+ se <- function(x, na.rm = FALSE) {
+      if (na.rm) x <- na.omit(x)
+      sd(x) / sqrt(length(x))
+ }
+```
+
+## load dfs
+```{r load dfs, echo = FALSE, warning=FALSE}
+tilecover <- read_csv(here::here("Data", "Tile Data  - Vertical_Data_Sheet.csv")) %>%
+  mutate(site = as.factor(site), 
+         tile_ID = as.factor(tile_ID)) %>%
+  mutate_if(is.numeric , replace_na, replace = 0)
+```
+## clean dfs
+```{r clean dfs}
+#sum by phyla
+phyladf <- tilecover %>%
+ mutate(Porifera_cover = as.numeric(rowSums(select(., matches("porifera|sponge"))))) %>%
+ mutate(PAC_cover = as.numeric(rowSums(select(., matches("PAC"))))) %>%
+ mutate(CCA_cover = as.numeric(rowSums(select(., matches("CCA"))))) %>%
+  mutate(Macroalgae_cover = as.numeric(rowSums(select(., matches("algae"))))) %>%
+  mutate(Bryozoan_cover = as.numeric(rowSums(select(., matches("bryozoan"))))) %>%
+  mutate(Turf_cover = as.numeric(rowSums(select(., matches("turf"))))) %>%
+ mutate(Chordata_cover = as.numeric(rowSums(select(., matches("chordata|tunicate|eudistoma|phallusia|lissoclinum"))))) %>%
+ mutate(Mollusca_cover = as.numeric(rowSums(select(., matches("mollusk|bivalve|chiton|mollusca"))))) %>%
+  mutate(Macroalgae_cover = as.numeric(rowSums(select(., matches("algae"))))) %>%
+  mutate(Cnidaria_cover = as.numeric(rowSums(select(., matches("zooanths|anemone|zooanthid"))))) %>%
+  mutate(Echinodermata_cover = as.numeric(rowSums(select(., matches("star"))))) %>%
+ mutate(Annelida_cover = as.numeric(rowSums(select(., matches("duster|tube|worm")))))
+
+#remove columns that were combined
+## if you add columns as you increase the sites, make sure to increase the "57" to whatever the number of variables is on "tilecover"
+## AND make sure all of the new column names, have something accounted for in the sum by phyla chunk
+phyladf <- subset(phyladf, select = -c(3:57))
+```
+
+then we want to take the percent cover data, and make a vertical file that has a column for each cover "type" with the percent for each tile 
+```{r percent cover vertical}
+#get just percent cover so i can make a bar plot
+percentvert <- melt(phyladf, id = c("site", "tile_ID"), variable.name = "cover") %>% 
+  rename(percent = value)
+
+# get site level averages so we can have standard error
+percentvert_averages <- percentvert %>%
+  group_by(site, cover) %>%
+  summarise(mean_cover = mean(percent, na.rm = TRUE),
+    se_cover = se(percent, na.rm = TRUE))
+```
+
+
+# Visualization
+```{r}
+# no average standard error
+coverbar <- ggplot(data = percentvert, mapping = aes(fill = cover, y = percent, x = factor(site))) +
+  scale_fill_viridis(discrete = TRUE) +
+  geom_bar(position = "dodge", stat = "identity") +
+  labs(title="Taxa coverage on tiles", x="", y="percent cover", fill = "") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
+        legend.position = c(0.90,0.70), # change these values to move the plot legend aorund 
+        legend.text = element_text(face = "italic"))
+coverbar
+
+
+# averages and standard error
+coveravg <- ggplot(data = percentvert_averages, mapping = aes(fill = cover, y = mean_cover, x = factor(site))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  geom_errorbar(data = percentvert_averages, aes(x = site, ymin = mean_cover - se_cover, ymax = mean_cover + se_cover), width = 0.1, color = "darkslategrey", stat = "identity", position = position_dodge(width = 0.9)) +
+  labs(title="", x="", y="average percent cover", fill = "") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
+        legend.position = c(0.96,0.9),
+        legend.text = element_text(face = "italic"))
+coveravg
+
+```
+
