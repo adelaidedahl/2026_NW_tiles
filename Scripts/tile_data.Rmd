@@ -79,6 +79,7 @@ coverbar <- ggplot(data = percentvert, mapping = aes(fill = cover, y = percent, 
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
         legend.position = c(0.90,0.70), # change these values to move the plot legend aorund 
         legend.text = element_text(face = "italic"))
+
 coverbar
 
 
@@ -87,10 +88,11 @@ coveravg <- ggplot(data = percentvert_averages, mapping = aes(fill = cover, y = 
   geom_bar(position = "dodge", stat = "identity") +
   scale_fill_viridis(discrete = TRUE) +
   geom_errorbar(data = percentvert_averages, aes(x = site, ymin = mean_cover - se_cover, ymax = mean_cover + se_cover), width = 0.1, color = "darkslategrey", stat = "identity", position = position_dodge(width = 0.9)) +
-  labs(title="", x="", y="average percent cover", fill = "") +
+  labs(title="Average taxa cover on tiles", x="", y="average percent cover", fill = "") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
         legend.position = c(0.96,0.9),
         legend.text = element_text(face = "italic"))
+
 coveravg
 
 ```
